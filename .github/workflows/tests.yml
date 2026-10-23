@@ -1,0 +1,39 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portable-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: python3 -I -S -m unittest discover -s tests -v
+
+  macos-tests:
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Record platform
+        run: |
+          /usr/bin/sw_vers
+          /usr/bin/python3 --version
+      - name: Unprivileged unit tests
+        run: /usr/bin/python3 -I -S -m unittest discover -s tests -v
+      - name: Privileged fixture integration tests
+        run: sudo /usr/bin/env GITHUB_ACTIONS=true RUNNER_ENVIRONMENT=github-hosted /usr/bin/python3 -I -S tests/macos_privileged.py
